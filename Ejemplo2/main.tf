@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "~> 6.0"
     }
   }
@@ -13,6 +13,10 @@ provider "aws" {
 
 locals {
   Environment = "Dev"
+  nombre_workspace = terraform.workspace
+  ruta_private_key = "~/Descargas/EjemploAnsible.pem"
+  nombre_key = "EjemploAnsible"
+  usuario_ssh = "ubuntu"
 }
 
 #data "aws_subnet" "default" {
@@ -20,24 +24,54 @@ locals {
 #}
 
 resource "aws_instance" "mi_servidor" {
-  for_each = var.nombres_servicios
-  ami = "ami-0b6d9d3d33ba97d99"
-  instance_type = "t3.micro"
-  subnet_id = module.vpc.public_subnets[0]  #"subnet-0ec43cfc20f6562ea" # data.aws_subnet.default.id
-  vpc_security_group_ids = [module.terraform-sg.security_group_id]
+  for_each                    = var.nombres_servicios
+  ami                         = "ami-0b6d9d3d33ba97d99"
+  instance_type               = "t3.micro"
+  subnet_id                   = module.vpc.public_subnets[0] #"subnet-0ec43cfc20f6562ea" # data.aws_subnet.default.id
+  vpc_security_group_ids      = [module.security-group.security_group_id]
   associate_public_ip_address = true
   tags = {
-    Name = "ServidorTerraform-${each.key}"
+    Name        = "ServidorTerraform-${each.key}"
     Environment = local.Environment
-    Owner = "Pepe"
+    Owner       = "Pepe"
   }
 }
+
+resource "aws_instance" "mi_servidor_2" {
+  count = terraform.workspace == "produccione" ? 2 : 1 
+  ami                         = "ami-0b6d9d3d33ba97d99"
+  instance_type               = "t3.micro"
+  subnet_id                   = module.vpc.public_subnets[1] #"subnet-0ec43cfc20f6562ea" # data.aws_subnet.default.id
+  vpc_security_group_ids      = [module.security-group.security_group_id]
+  associate_public_ip_address = true
+  key_name = local.nombre_key 
+  tags = {
+    Name        = format("%s-%s",terraform.workspace,count.index)
+    Environment = local.Environment
+    Owner       = "Pepe"
+  }
+  provisioner "remote-exec" {
+    inline = ["echo 'Esperando conexion SSH en ${self.public_ip}'"]
+    connection {
+      type = "ssh"
+      user = local.usuario_ssh
+      private_key = file(local.ruta_private_key)
+      host = self.public_ip
+      timeout = "5m"
+    }
+  }
+  provisioner "local-exec" {
+    command = "ansible-playbook -i ${self.public_ip}, --private-key ${local.ruta_private_key} nginx.yml"
+  }
+
+}
+
 
 resource "aws_cloudwatch_log_group" "grupo_log_ec2" {
   for_each = var.nombres_servicios
   tags = {
     Environment = "Prueba"
-    Servicio = each.key
+    Servicio    = each.key
   }
   lifecycle {
     create_before_destroy = true
