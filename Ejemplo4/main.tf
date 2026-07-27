@@ -25,6 +25,7 @@ resource "aws_instance" "mi_servidor" {
   subnet_id                   = module.vpc.public_subnets[0]
   vpc_security_group_ids      = [module.security-group.security_group_id]
   associate_public_ip_address = true
+  key_name = local.nombre_key
   tags = {
     Name        = "${terraform.workspace}-${count.index}"
   }
@@ -39,7 +40,7 @@ resource "aws_instance" "mi_servidor" {
     }
   }
   provisioner "local-exec" {
-    command = "ansible-playbook -i ${self.public_ip}, --private-key ${local.ruta_private_key} nginx.yml"
+    command = "ansible-playbook -i ${self.public_ip}, --private-key ${local.ruta_private_key} main.yml"
   }
 }
 
