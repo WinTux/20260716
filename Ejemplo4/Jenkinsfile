@@ -1,12 +1,83 @@
 pipeline {
   agent any
+  tools {
+    terraform 'Terraform_2.X'
+  }
+  environment {
+    APP_NAME = "ejemplo-0.0.1-SNAPSHOT"
+    JAR_PATH = "target/${APP_NAME}.jar"
+    ANSIBLE_ROLE_PATH = "roles/springboot/files"
+  }
   stages {
     stage('Checkout') {
       steps {
-        git branch: 'main',
-            url: 'https://github.com/WinTux/20260716.git',
-            credentialsId: 'github-token'
+        checkout scm
       } 
+    }
+    stage('Build & test') {
+      steps {
+        dir('Ejemplo4') {
+          sh '''
+          ./mvnw clean package -DskipTests=false
+          mv target/ejemplo-*.jar target/ejemplo.jar
+          '''
+        }
+      }
+      post {
+        success {
+          echo "Compilacion y pruebas exitosas"
+        }
+        failure {
+          error("Fallaron las pruebas. Pipeline se detiene!")
+        }
+      }
+    }
+    stage('Copiar Jar al rol de Ansible') {
+      steps {
+        sh """
+        cp ${JAR_PATH} ${ANSIBLE_ROLE_PATH}/ejemplo.jar
+        ls -lh ${ANSIBLE_ROLE_PATH}
+        """
+      }
+    }
+    stage('Validacion Terraform') {
+      steps {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],file(credentialsId: 'clasesdevops-pem', variable: 'AWS_KEY_FILE')]) {
+          sh """
+          terraform init
+          terraform validate
+          terraform plan -var="ruta_private_key=${AWS_KEY_FILE}"  -out=tfplan
+          """
+        }
+      }
+    }
+    stage('Terraform Apply') {
+      when {
+        branch 'main'
+      }
+      steps {
+        input message: "Aplicar cambios a Produccion?"
+        withCredentials() { # Falta copiar y modificar lo siguiente
+          sh """
+          terraform apply -auto-approve tfplan
+          """
+        }
+      }
+    }
+    stage('Deploy con Ansible') {
+      steps {
+        sh """
+        ansible-playbook -i inventory/inventario main.yml
+        """
+      }
+      post {
+        success {
+          echo "Pipeline completado correctamente"
+        }
+        failure {
+          echo "Error en el pipeline"
+        }
+      }
     }
   }
 }
