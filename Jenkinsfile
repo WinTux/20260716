@@ -35,6 +35,7 @@ pipeline {
     stage('Copiar Jar al rol de Ansible') {
       steps {
         sh """
+        pwd
         cp ${JAR_PATH} ${ANSIBLE_ROLE_PATH}/ejemplo.jar
         ls -lh ${ANSIBLE_ROLE_PATH}
         """
