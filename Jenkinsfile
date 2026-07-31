@@ -34,21 +34,25 @@ pipeline {
     }
     stage('Copiar Jar al rol de Ansible') {
       steps {
-        sh """
-        pwd
-        cp ${JAR_PATH} ${ANSIBLE_ROLE_PATH}/ejemplo.jar
-        ls -lh ${ANSIBLE_ROLE_PATH}
-        """
+        dir('Ejemplo4') {
+          sh """
+          pwd
+          cp ${JAR_PATH} ${ANSIBLE_ROLE_PATH}/ejemplo.jar
+          ls -lh ${ANSIBLE_ROLE_PATH}
+          """
+        }
       }
     }
     stage('Validacion Terraform') {
       steps {
+        dir('Ejemplo4') {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],file(credentialsId: 'clasesdevops-pem', variable: 'AWS_KEY_FILE')]) {
           sh """
           terraform init
           terraform validate
           terraform plan -var="ruta_private_key=${AWS_KEY_FILE}" -out=tfplan
           """
+        }
         }
       }
     }
@@ -58,17 +62,19 @@ pipeline {
       }
       steps {
         input message: "Aplicar cambios a Produccion?"
+        dir('ejemplo4') {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],file(credentialsId: 'clasesdevops-pem', variable: 'AWS_KEY_FILE')]) {
           sh """
           terraform apply -auto-approve -var="ruta_private_key=${AWS_KEY_FILE}" tfplan
           """
+        }
         }
       }
     }
     stage('Deploy con Ansible') {
       steps {
         sh """
-        ansible-playbook -i inventory/inventario main.yml
+        ansible-playbook -i Ejemplo4/inventory/inventario main.yml
         """
       }
       post {
@@ -83,13 +89,14 @@ pipeline {
     stage('Terraform Destroy') {
       steps {
         input message: "Desea destruir la infraestructura creada?"
+        dir('Ejemplo4') {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],file(credentialsId: 'clasesdevops-pem', variable: 'AWS_KEY_FILE')]) {
           sh """
           terraform init
           terraform destroy -auto-approve -var="ruta_private_key=${AWS_KEY_FILE}"
           """
         }
-
+        }
       }
     }
   }
