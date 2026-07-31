@@ -37,7 +37,7 @@ pipeline {
         dir('Ejemplo4') {
           sh """
           pwd
-          cp ${JAR_PATH} ${ANSIBLE_ROLE_PATH}/ejemplo.jar
+          cp target/ejemplo.jar ${ANSIBLE_ROLE_PATH}/ejemplo.jar
           ls -lh ${ANSIBLE_ROLE_PATH}
           """
         }
@@ -48,6 +48,7 @@ pipeline {
         dir('Ejemplo4') {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],file(credentialsId: 'clasesdevops-pem', variable: 'AWS_KEY_FILE')]) {
           sh """
+          pwd
           terraform init
           terraform validate
           terraform plan -var="ruta_private_key=${AWS_KEY_FILE}" -out=tfplan
@@ -65,6 +66,7 @@ pipeline {
         dir('ejemplo4') {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],file(credentialsId: 'clasesdevops-pem', variable: 'AWS_KEY_FILE')]) {
           sh """
+          pwd
           terraform apply -auto-approve -var="ruta_private_key=${AWS_KEY_FILE}" tfplan
           """
         }
@@ -74,6 +76,7 @@ pipeline {
     stage('Deploy con Ansible') {
       steps {
         sh """
+        pwd
         ansible-playbook -i Ejemplo4/inventory/inventario main.yml
         """
       }
@@ -92,6 +95,7 @@ pipeline {
         dir('Ejemplo4') {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],file(credentialsId: 'clasesdevops-pem', variable: 'AWS_KEY_FILE')]) {
           sh """
+          pwd
           terraform init
           terraform destroy -auto-approve -var="ruta_private_key=${AWS_KEY_FILE}"
           """
