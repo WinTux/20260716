@@ -34,10 +34,14 @@ pipeline {
     }
     stage('Copiar Jar al rol de Ansible') {
       steps {
-        sh """
-        cp ${JAR_PATH} ${ANSIBLE_ROLE_PATH}/ejemplo.jar
-        ls -lh ${ANSIBLE_ROLE_PATH}
-        """
+        
+          sh """
+          echo 'Directorio actual de trabajo'
+          pwd
+          cp ${JAR_PATH} ${ANSIBLE_ROLE_PATH}/ejemplo.jar
+          ls -lh ${ANSIBLE_ROLE_PATH}
+          """
+        
       }
     }
     stage('Validacion Terraform') {
