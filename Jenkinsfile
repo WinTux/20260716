@@ -1,5 +1,8 @@
 pipeline {
   agent any
+  parameters {
+    choice(name: 'COLOR', choices: ['blue','green'], description: 'Color a desplegar')
+  }
   tools {
     terraform 'Terraform_2.X'
   }
@@ -51,7 +54,7 @@ pipeline {
           pwd
           terraform init
           terraform validate
-          terraform plan -var="ruta_private_key=${AWS_KEY_FILE}" -out=tfplan
+          terraform plan -var="ruta_private_key=${AWS_KEY_FILE}" -var="color_activo=${params.COLOR}" -out=tfplan
           terraform apply -auto-approve tfplan
           """
         }

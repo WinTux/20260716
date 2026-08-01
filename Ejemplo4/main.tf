@@ -53,3 +53,39 @@ resource "aws_cloudwatch_log_group" "grupo_log_ec2" {
     create_before_destroy = true
   }
 }
+
+resource "aws_lb" "spring_alb" {
+  name = "spring-alb"
+  load_balancer_type = "application"
+  subnets = module.vpc.public_subnets
+  security_groups = [module.security-group.security_group_id]
+}
+
+resource "aws_lb_target_group" "blue" {
+  name = "spring-blue"
+   port = 8080
+   protocol = "HTTP"
+   vpc_id = module.vpc.vpc_id
+   health_check {
+     path = "/actuator/health"
+   }
+}
+
+resource "aws_lb_target_group" "green" { 
+  name = "spring-green"
+   port = 8080
+   protocol = "HTTP"
+   vpc_id = module.vpc.vpc_id
+   health_check { 
+     path = "/actuator/health"
+   }
+}
+
+resource "aws_lb_target_group_attachment" "attach" {
+  for_each = {
+    for idx, instance in aws_instance.mi_servidor : idx => instance.id
+  }
+  target_group_arn = var.color_activo == "blue" ? aws_lb_target_group.blue.arn : aws_lb_target_group.green.arn
+  target_id = each.value
+  port = 8080
+}
