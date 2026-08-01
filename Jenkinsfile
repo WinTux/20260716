@@ -80,14 +80,6 @@ pipeline {
         ansible-playbook -i Ejemplo4/inventory/inventario main.yml
         """
       }
-      post {
-        success {
-          echo "Pipeline completado correctamente"
-        }
-        failure {
-          echo "Error en el pipeline"
-        }
-      }
     }
     stage('Terraform Destroy') {
       steps {
