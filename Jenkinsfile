@@ -62,7 +62,8 @@ pipeline {
       steps {
         sh """
         pwd
-        ansible-playbook -i Ejemplo4/inventory/inventario main.yml
+        ./Ejemplo4/inventory/generar_inventario_ini.sh
+        ansible-playbook -i ./Ejemplo4/inventory/generar_inventario_ini.sh Ejemplo4/main.yml
         """
       }
     }
