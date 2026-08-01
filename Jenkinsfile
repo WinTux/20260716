@@ -52,22 +52,7 @@ pipeline {
           terraform init
           terraform validate
           terraform plan -var="ruta_private_key=${AWS_KEY_FILE}" -out=tfplan
-          """
-        }
-        }
-      }
-    }
-    stage('Terraform Apply') {
-      when {
-        branch 'main'
-      }
-      steps {
-        input message: "Aplicar cambios a Produccion?"
-        dir('ejemplo4') {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials'],file(credentialsId: 'clasesdevops-pem', variable: 'AWS_KEY_FILE')]) {
-          sh """
-          pwd
-          terraform apply -auto-approve -var="ruta_private_key=${AWS_KEY_FILE}" tfplan
+          terraform apply -auto-approve tfplan
           """
         }
         }
